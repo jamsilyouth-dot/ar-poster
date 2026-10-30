@@ -4,7 +4,11 @@
 <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 <style>
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000;color:#fff;font-family:system-ui,-apple-system,sans-serif}
-a-scene{position:absolute!important;inset:0;background:transparent!important}
+a-scene{position:absolute!important;inset:0;z-index:2!important;background:transparent!important}
+/* MindAR의 실제 카메라 video를 배경 레이어에 표시 */
+video:not(#movie){z-index:1!important;background:transparent!important}
+.a-canvas{background:transparent!important}
+.a-enter-vr,.a-enter-ar{display:none!important}
 /* MindAR가 생성하는 카메라 영상 위에 AR 캔버스가 투명하게 표시되도록 유지 */
 a-scene canvas{background:transparent!important}
 #hud{position:fixed;z-index:50;top:0;left:0;right:0;padding:calc(14px + env(safe-area-inset-top)) 18px 22px;text-align:center;background:linear-gradient(#071326c9,transparent);pointer-events:none}
@@ -18,18 +22,30 @@ button{border:0;border-radius:25px;background:#fff;color:#15213a;padding:12px 17
 <div id="hud"><strong>잠실청소년센터 공간대관 AR</strong><div id="status" role="status">카메라를 준비하고 있어요...</div></div>
 <div id="controls"><button id="sound" type="button">소리 켜기</button><button id="replay" type="button">처음부터 재생</button></div>
 <div id="notice"><div id="noticeText">카메라를 실행하지 못했습니다.</div><p>카메라 권한을 허용하고 Chrome 또는 Safari에서 열어주세요.</p><button id="retry" type="button">다시 시도</button></div>
-<a-scene mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiLoading: no; uiScanning: no; uiError: no" color-space="sRGB" renderer="alpha: true; colorManagement: true" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false" embedded>
+<a-scene mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiLoading: no; uiScanning: no; uiError: no" color-space="sRGB" renderer="alpha: true; colorManagement: true" background="color: #000000; transparent: true" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false" embedded>
 <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 <a-entity id="anchor" mindar-image-target="targetIndex: 0"><a-video src="#movie" width="1" height="1.41534" position="0 0 0.012" material="shader: flat; side: double; transparent: true"></a-video></a-entity>
 </a-scene>
 <script>
+// A-Frame의 WebGL 캔버스는 카메라 영상 위에 투명하게 합성되어야 합니다.
+function fixCameraLayer(){
+  for(const v of document.querySelectorAll('video')){
+    if(v.id==='movie')continue;
+    v.style.setProperty('z-index','1','important');
+    v.style.setProperty('visibility','visible','important');
+    v.style.setProperty('opacity','1','important');
+  }
+  const canvas=document.querySelector('a-scene canvas');
+  if(canvas)canvas.style.setProperty('background','transparent','important');
+}
+new MutationObserver(fixCameraLayer).observe(document.body,{childList:true,subtree:true});
 const scene=document.querySelector('a-scene'),video=document.querySelector('#movie'),anchor=document.querySelector('#anchor');
 const status=document.querySelector('#status'),notice=document.querySelector('#notice'),noticeText=document.querySelector('#noticeText'),retry=document.querySelector('#retry'),sound=document.querySelector('#sound'),replay=document.querySelector('#replay');
 let starting=false,tracking=false;
 function say(t){status.textContent=t}
 function fail(e){console.error(e);say('카메라 실행 오류');noticeText.textContent='실행 오류: '+(e?.message||String(e));notice.style.display='block';retry.style.display='inline-block'}
 function ready(){if(scene.hasLoaded)return Promise.resolve();return new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(new Error('AR 장면 초기화 시간 초과')),25000);scene.addEventListener('loaded',()=>{clearTimeout(timer);resolve()},{once:true})})}
-async function boot(){if(starting)return;starting=true;notice.style.display='none';retry.style.display='none';say('카메라 권한을 허용해주세요.');try{await ready();const ar=scene.systems['mindar-image-system'];if(!ar)throw new Error('AR 엔진을 찾지 못했습니다.');await ar.start();say('포스터 전체를 카메라에 비춰주세요.');}catch(e){fail(e)}finally{starting=false}}
+async function boot(){if(starting)return;starting=true;notice.style.display='none';retry.style.display='none';say('카메라 권한을 허용해주세요.');try{await ready();const ar=scene.systems['mindar-image-system'];if(!ar)throw new Error('AR 엔진을 찾지 못했습니다.');await ar.start();fixCameraLayer();say('포스터 전체를 카메라에 비춰주세요.');}catch(e){fail(e)}finally{starting=false}}
 // 별도 시작 버튼 없이 페이지 로드 후 자동으로 카메라 권한을 요청합니다.
 window.addEventListener('load',boot,{once:true});retry.addEventListener('click',boot);
 anchor.addEventListener('targetFound',async()=>{tracking=true;say('포스터를 인식했어요!');try{await video.play()}catch(e){console.warn(e);say('포스터 인식 완료 · 재생을 눌러주세요.')}});
