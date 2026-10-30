@@ -23,7 +23,7 @@ button{border:0;border-radius:25px;background:#fff;color:#15213a;padding:12px 17
 <div id="hud"><strong>잠실청소년센터 공간대관 AR</strong><div id="status" role="status">카메라를 준비하고 있어요...</div></div>
 <div id="controls"><button id="sound" type="button">소리 켜기</button><button id="replay" type="button">처음부터 재생</button></div>
 <div id="notice"><div id="noticeText">카메라를 실행하지 못했습니다.</div><p>카메라 권한을 허용하고 Chrome 또는 Safari에서 열어주세요.</p><button id="retry" type="button">다시 시도</button></div>
-<a-scene mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiLoading: no; uiScanning: no; uiError: no" color-space="sRGB" renderer="alpha: true; colorManagement: true" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false" embedded>
+<a-scene mindar-image="imageTargetSrc: ./targets.mind; filterMinCF: 0.0001; filterBeta: 0.001; warmupTolerance: 5; missTolerance: 10; autoStart: false; uiLoading: no; uiScanning: no; uiError: no" color-space="sRGB" renderer="alpha: true; colorManagement: true" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false" embedded>
 <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 <a-entity id="anchor" mindar-image-target="targetIndex: 0"><a-video src="#movie" width="1" height="1.41534" position="0 0 0.012" material="shader: flat; side: double; transparent: true"></a-video></a-entity>
 </a-scene>
