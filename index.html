@@ -3,33 +3,39 @@
 <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 <style>
-html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#111c2d;color:white;font-family:system-ui,sans-serif}#top{position:fixed;z-index:30;top:0;left:0;right:0;padding:18px 14px;background:linear-gradient(#09182bea,transparent);text-align:center;pointer-events:none}#top b{font-size:17px}#status{margin-top:8px;font-size:13px;line-height:1.5}#actions{position:fixed;z-index:40;bottom:calc(24px + env(safe-area-inset-bottom));left:0;right:0;display:flex;justify-content:center;gap:9px;padding:0 12px}button{border:0;border-radius:26px;background:white;color:#102038;font-size:15px;font-weight:700;padding:13px 18px}button:disabled{opacity:.6}#sound{background:#d8e9ff}#startOverlay{position:fixed;z-index:50;inset:0;background:#101c30;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;text-align:center;padding:24px}#startOverlay p{font-size:14px;line-height:1.7;max-width:320px;color:#d6e4f8}#start{background:#c8e2ff}#error{white-space:pre-wrap;font-size:12px;color:#ffd0c9;max-width:340px}a-scene{position:absolute!important;inset:0}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000;color:#fff;font-family:system-ui,-apple-system,sans-serif}
+a-scene{position:absolute!important;inset:0;background:transparent!important}
+/* MindAR가 생성하는 카메라 영상 위에 AR 캔버스가 투명하게 표시되도록 유지 */
+a-scene canvas{background:transparent!important}
+#hud{position:fixed;z-index:50;top:0;left:0;right:0;padding:calc(14px + env(safe-area-inset-top)) 18px 22px;text-align:center;background:linear-gradient(#071326c9,transparent);pointer-events:none}
+#hud strong{font-size:16px}#status{margin-top:8px;font-size:13px;line-height:1.5}
+#controls{position:fixed;z-index:60;bottom:calc(18px + env(safe-area-inset-bottom));left:0;right:0;display:flex;justify-content:center;gap:10px;padding:0 12px}
+button{border:0;border-radius:25px;background:#fff;color:#15213a;padding:12px 17px;font-size:14px;font-weight:700}
+#notice{position:fixed;z-index:70;left:15px;right:15px;top:50%;transform:translateY(-50%);background:#13213beb;border:1px solid #ffffff44;border-radius:16px;padding:20px;text-align:center;display:none}
+#notice p{font-size:13px;line-height:1.6}#retry{display:none}
 </style></head><body>
-<!-- 비디오를 a-assets 밖에 두어 MP4 로딩이 AR 장면 초기화를 차단하지 않게 합니다. -->
-<video id="movie" src="./video.mp4" preload="none" playsinline webkit-playsinline muted loop style="display:none"></video>
-<div id="top"><b>잠실청소년센터 공간대관 AR</b><div id="status" role="status">시작 버튼을 눌러 카메라를 실행해주세요.</div></div>
-<div id="actions"><button id="replay" type="button">영상 다시 재생</button><button id="sound" type="button">소리 켜기</button></div>
-<div id="startOverlay"><h2>AR 포스터 체험</h2><p>카메라 접근을 허용한 후 포스터 전체를 비춰주세요.<br>스마트폰 기본 브라우저(Chrome/Safari)를 권장합니다.</p><button id="start" type="button">카메라 시작하기</button><div id="error"></div></div>
-<a-scene mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiLoading: no; uiScanning: yes; uiError: no" color-space="sRGB" renderer="colorManagement: true" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false" embedded>
+<video id="movie" src="./video.mp4" preload="metadata" playsinline webkit-playsinline muted loop style="display:none"></video>
+<div id="hud"><strong>잠실청소년센터 공간대관 AR</strong><div id="status" role="status">카메라를 준비하고 있어요...</div></div>
+<div id="controls"><button id="sound" type="button">소리 켜기</button><button id="replay" type="button">처음부터 재생</button></div>
+<div id="notice"><div id="noticeText">카메라를 실행하지 못했습니다.</div><p>카메라 권한을 허용하고 Chrome 또는 Safari에서 열어주세요.</p><button id="retry" type="button">다시 시도</button></div>
+<a-scene mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiLoading: no; uiScanning: no; uiError: no" color-space="sRGB" renderer="alpha: true; colorManagement: true" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false" embedded>
 <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
-<a-entity id="anchor" mindar-image-target="targetIndex: 0"><a-video src="#movie" width="1" height="1.41534" position="0 0 0.012" material="shader: flat; side: double"></a-video></a-entity>
+<a-entity id="anchor" mindar-image-target="targetIndex: 0"><a-video src="#movie" width="1" height="1.41534" position="0 0 0.012" material="shader: flat; side: double; transparent: true"></a-video></a-entity>
 </a-scene>
 <script>
-const scene=document.querySelector('a-scene'),video=document.querySelector('#movie'),anchor=document.querySelector('#anchor'),status=document.querySelector('#status'),overlay=document.querySelector('#startOverlay'),start=document.querySelector('#start'),error=document.querySelector('#error'),replay=document.querySelector('#replay'),sound=document.querySelector('#sound');
-let tracking=false,starting=false;
-function message(s){status.textContent=s}
-function report(e){const m=e?.message||String(e);error.textContent='실행 오류: '+m;message('AR 시작에 실패했습니다. 오류 내용을 확인해주세요.');start.disabled=false;start.textContent='다시 시도'}
-function sceneReady(){return new Promise((resolve,reject)=>{if(scene.hasLoaded)return resolve();scene.addEventListener('loaded',resolve,{once:true});setTimeout(()=>reject(new Error('AR 장면 로딩 시간 초과. 네트워크 또는 라이브러리를 확인해주세요.')),20000)})}
-start.addEventListener('click',async()=>{if(starting)return;starting=true;start.disabled=true;error.textContent='';start.textContent='카메라 준비 중...';message('AR 엔진을 시작하고 있습니다.');try{
-// 모바일 브라우저의 사용자 제스처 내에서 영상 재생 권한 확보를 시도합니다.
-video.muted=true;video.load();try{await video.play();video.pause();video.currentTime=0}catch(e){console.warn('Video unlock deferred:',e)}
-await sceneReady();const ar=scene.systems['mindar-image-system'];if(!ar)throw new Error('MindAR 라이브러리가 로드되지 않았습니다.');
-message('카메라 접근을 허용해주세요.');await ar.start();overlay.style.display='none';message('포스터 전체를 카메라에 비춰주세요.');
-}catch(e){report(e)}finally{starting=false;start.disabled=false;start.textContent='카메라 시작하기'}});
-anchor.addEventListener('targetFound',async()=>{tracking=true;message('포스터 인식 완료!');try{await video.play()}catch(e){message('포스터를 인식했어요. 아래 영상 다시 재생을 눌러주세요.')}});
-anchor.addEventListener('targetLost',()=>{tracking=false;video.pause();message('포스터 전체를 다시 비춰주세요.')});
-replay.addEventListener('click',async()=>{try{video.currentTime=0;await video.play();if(!tracking)message('영상 준비 완료. 포스터를 비춰주세요.')}catch(e){message('영상 재생 오류: '+(e.message||e))}});
-sound.addEventListener('click',()=>{video.muted=!video.muted;sound.textContent=video.muted?'소리 켜기':'소리 끄기'});
-scene.addEventListener('arError',e=>{report(e.detail||new Error('카메라 또는 AR 초기화 오류'))});
-video.addEventListener('error',()=>{message('video.mp4 로딩 오류: 영상 파일 또는 코덱을 확인해주세요.')});
+const scene=document.querySelector('a-scene'),video=document.querySelector('#movie'),anchor=document.querySelector('#anchor');
+const status=document.querySelector('#status'),notice=document.querySelector('#notice'),noticeText=document.querySelector('#noticeText'),retry=document.querySelector('#retry'),sound=document.querySelector('#sound'),replay=document.querySelector('#replay');
+let starting=false,tracking=false;
+function say(t){status.textContent=t}
+function fail(e){console.error(e);say('카메라 실행 오류');noticeText.textContent='실행 오류: '+(e?.message||String(e));notice.style.display='block';retry.style.display='inline-block'}
+function ready(){if(scene.hasLoaded)return Promise.resolve();return new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(new Error('AR 장면 초기화 시간 초과')),25000);scene.addEventListener('loaded',()=>{clearTimeout(timer);resolve()},{once:true})})}
+async function boot(){if(starting)return;starting=true;notice.style.display='none';retry.style.display='none';say('카메라 권한을 허용해주세요.');try{await ready();const ar=scene.systems['mindar-image-system'];if(!ar)throw new Error('AR 엔진을 찾지 못했습니다.');await ar.start();say('포스터 전체를 카메라에 비춰주세요.');}catch(e){fail(e)}finally{starting=false}}
+// 별도 시작 버튼 없이 페이지 로드 후 자동으로 카메라 권한을 요청합니다.
+window.addEventListener('load',boot,{once:true});retry.addEventListener('click',boot);
+anchor.addEventListener('targetFound',async()=>{tracking=true;say('포스터를 인식했어요!');try{await video.play()}catch(e){console.warn(e);say('포스터 인식 완료 · 재생을 눌러주세요.')}});
+anchor.addEventListener('targetLost',()=>{tracking=false;video.pause();say('포스터 전체를 카메라에 비춰주세요.')});
+replay.addEventListener('click',async()=>{video.currentTime=0;try{await video.play();if(!tracking)say('영상 준비 완료 · 포스터를 비춰주세요.')}catch(e){say('영상 재생 오류: '+e.message)}});
+sound.addEventListener('click',async()=>{video.muted=!video.muted;sound.textContent=video.muted?'소리 켜기':'소리 끄기';if(tracking&&video.paused){try{await video.play()}catch(e){console.warn(e)}}});
+scene.addEventListener('arError',e=>fail(e.detail||new Error('AR 실행 오류')));
+video.addEventListener('error',()=>say('영상 파일을 불러오지 못했습니다.'));
 </script></body></html>
