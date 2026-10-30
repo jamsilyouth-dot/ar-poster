@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>AR 포스터</title>
+<script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+<style>
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#111;font-family:system-ui,sans-serif}
+#guide{position:fixed;z-index:20;top:16px;left:16px;right:16px;color:white;text-align:center;background:#000a;padding:12px;border-radius:12px;pointer-events:none}
+#start{position:fixed;z-index:30;bottom:32px;left:50%;transform:translateX(-50%);background:#fff;border:0;border-radius:30px;padding:14px 22px;font-size:16px;font-weight:700;white-space:nowrap}
+#status{position:fixed;z-index:20;bottom:95px;left:12px;right:12px;color:#fff;text-align:center;text-shadow:0 1px 3px #000}
+</style>
+</head>
+<body>
+<div id="guide">카메라를 포스터에 비춰주세요.</div>
+<div id="status" role="status">카메라 권한을 허용해주세요.</div>
+<button id="start" type="button">영상 재생 준비</button>
+<a-scene mindar-image="imageTargetSrc: ./targets.mind; autoStart: true;" color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false" embedded>
+<a-assets><video id="ar-video" src="./video.mp4" preload="auto" loop playsinline webkit-playsinline crossorigin="anonymous"></video></a-assets>
+<a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+<a-entity id="target" mindar-image-target="targetIndex: 0">
+<!-- Change width/height to match poster aspect ratio: target coordinate width is 1. -->
+<a-video src="#ar-video" width="1" height="1.414" position="0 0 0.01" rotation="0 0 0"></a-video>
+</a-entity>
+</a-scene>
+<script>
+const video=document.querySelector('#ar-video');
+const target=document.querySelector('#target');
+const status=document.querySelector('#status');
+const start=document.querySelector('#start');
+let found=false,unlocked=false;
+start.addEventListener('click',async()=>{
+  try{
+    video.muted=true;
+    await video.play();
+    video.pause();video.currentTime=0;
+    unlocked=true;
+    start.textContent='소리 켜기';
+    status.textContent='준비 완료! 포스터를 비춰주세요.';
+    if(found) await video.play();
+  }catch(e){status.textContent='재생 준비 실패: 브라우저에서 다시 시도해주세요.';}
+});
+start.addEventListener('click',()=>{
+  if(unlocked && video.muted && found){video.muted=false;video.play().catch(()=>{});start.textContent='소리 끄기';}
+  else if(unlocked && !video.muted){video.muted=true;start.textContent='소리 켜기';}
+});
+target.addEventListener('targetFound',async()=>{
+ found=true;status.textContent='포스터 인식 완료';
+ if(unlocked){try{await video.play()}catch(e){status.textContent='재생 버튼을 눌러주세요.';}}
+ else status.textContent='아래 영상 재생 준비 버튼을 눌러주세요.';
+});
+target.addEventListener('targetLost',()=>{found=false;video.pause();status.textContent='포스터를 다시 비춰주세요.';});
+document.querySelector('a-scene').addEventListener('arError',()=>{status.textContent='카메라를 열 수 없습니다. HTTPS와 카메라 권한을 확인해주세요.';});
+</script>
+</body>
+</html>
